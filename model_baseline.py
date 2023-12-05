@@ -1,55 +1,64 @@
 import preprocess
 import numpy as np
-
-# Apply tf-idf to the training data
+import pickle
+import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from tqdm import tqdm
+ 
 # Get the training data
 X = preprocess.get_instances()
 y = preprocess.get_labels()
-
+ 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
-
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
+ 
 # Apply tf-idf to the training data
 vectorizer = TfidfVectorizer()
 X_train = vectorizer.fit_transform(X_train)
 X_test = vectorizer.transform(X_test)
+ 
+# Function to train and evaluate a model
+def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name):
+    start_time = time.time()
+ 
+    # Train the model
+    model.fit(X_train, y_train)
+ 
+    # Measure the elapsed time
+    elapsed_time = time.time() - start_time
+    print(f"{model_name} Training Complete. Elapsed time: {elapsed_time:.2f} seconds")
+ 
+    # Make predictions
+    y_pred = model.predict(X_test)
+ 
+    # Evaluate the model
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Result for {model_name}: {accuracy:.2f}")
+ 
+    # Save the model
+    pickle.dump(model, open(f'models/modelb_{model_name.lower()}.sav', 'wb'))
+ 
+# Train and evaluate SVC
+svclassifier = SVC(kernel='linear')
+train_and_evaluate(svclassifier, X_train, y_train, X_test, y_test, "SVC")
+ 
+# Train and evaluate Logistic Regression
+logreg = LogisticRegression(max_iter=1000)
+train_and_evaluate(logreg, X_train, y_train, X_test, y_test, "Logistic Regression")
+ 
+# Train and evaluate Random Forest
+rf = RandomForestClassifier(n_estimators=1000, random_state=42)
+train_and_evaluate(rf, X_train, y_train, X_test, y_test, "Random Forest")
 
-# Train the model
-svclassifier = SVC(kernel = 'linear')
-svclassifier.fit(X_train, y_train)
-
-# Make predictions
-y_pred = svclassifier.predict(X_test)
-
-# Evaluate the model
-print(confusion_matrix(y_test, y_pred))
-print(classification_report(y_test, y_pred))
-print(accuracy_score(y_test, y_pred))
-
-# Result: [[263   7   4   7  11   2   3]
-#  [ 10 200   1  13   8   0   1]
-#  [  0   0 329   0   1  14   3]
-#  [ 12  13   1 350  15   2   4]
-#  [ 17   1   2   8 384   0   8]
-#  [  3   0  16   0   1 281  22]
-#  [  4   2   4   6   4  34 323]]
-#               precision    recall  f1-score   support
-
-#            0       0.85      0.89      0.87       297
-#            1       0.90      0.86      0.88       233
-#            2       0.92      0.95      0.93       347
-#            3       0.91      0.88      0.90       397
-#            4       0.91      0.91      0.91       420
-#            5       0.84      0.87      0.86       323
-#            6       0.89      0.86      0.87       377
-
-#     accuracy                           0.89      2394
-#    macro avg       0.89      0.89      0.89      2394
-# weighted avg       0.89      0.89      0.89      2394
-
-# 0.8897243107769424
+# For 12k dataset:
+# SVC Training Complete. Elapsed time: 131.55 seconds
+# Result for SVC: 0.90
+# Logistic Regression Training Complete. Elapsed time: 19.48 seconds
+# Result for Logistic Regression: 0.89
+# Random Forest Training Complete. Elapsed time: 861.96 seconds
+# Result for Random Forest: 0.90
