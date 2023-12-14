@@ -2,20 +2,23 @@ import preprocess
 import numpy as np
 import pickle
 import time
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
+from nltk.tokenize import word_tokenize
+from dataset.get_dataset import get_preprocessed_instances, get_labels
  
 def train_test_data_split(X, y, test_size=0.20):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
     return X_train, X_test, y_train, y_test
  
 def vectorize(X_train, X_test):
-    vectorizer = TfidfVectorizer()
+    # vectorizer = TfidfVectorizer()
+    vectorizer = CountVectorizer(tokenizer=word_tokenize, token_pattern = None, min_df = 10)
     X_train = vectorizer.fit_transform(X_train)
     X_test = vectorizer.transform(X_test)
     return X_train, X_test
@@ -39,12 +42,11 @@ def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name):
     print(f"Result for {model_name}: {accuracy:.2f}")
  
     # Save the model
-    pickle.dump(model, open(f'models/model_{model_name.lower()}.sav', 'wb'))
+    # pickle.dump(model, open(f'models/model_{model_name.lower()}.sav', 'wb'))
 
 def main():
     # Get the training data
-    X = preprocess.get_instances()
-    y = preprocess.get_labels()
+    X, y = get_preprocessed_instances(), get_labels()
 
     # Split the data into training and test sets
     X_train, X_test, y_train, y_test = train_test_data_split(X, y)
@@ -53,16 +55,16 @@ def main():
     X_train, X_test = vectorize(X_train, X_test)
  
     # Train and evaluate Logistic Regression
-    logreg = LogisticRegression(max_iter=1000)
+    logreg = LogisticRegression(C=1.0, max_iter = 200)
     train_and_evaluate(logreg, X_train, y_train, X_test, y_test, "Logistic Regression")
  
-    # Train and evaluate Random Forest
-    rf = RandomForestClassifier(n_estimators=1000, random_state=42)
-    train_and_evaluate(rf, X_train, y_train, X_test, y_test, "Random Forest")
+    # # Train and evaluate Random Forest
+    # rf = RandomForestClassifier(n_estimators=1000, random_state=42)
+    # train_and_evaluate(rf, X_train, y_train, X_test, y_test, "Random Forest")
  
-    # Train and evaluate SVC
-    svclassifier = SVC(kernel='linear')
-    train_and_evaluate(svclassifier, X_train, y_train, X_test, y_test, "SVC")
+    # # Train and evaluate SVC
+    # svclassifier = SVC(kernel='linear')
+    # train_and_evaluate(svclassifier, X_train, y_train, X_test, y_test, "SVC")
 
 
 if __name__ == "__main__":
