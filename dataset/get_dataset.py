@@ -13,12 +13,12 @@ dataset
 '''
 
 def get_instances(dataset = "WOS11967"):
-    f = open(f'dataset/WOS/{dataset}/X.txt')
+    f = open(f'C:/repo/COMP550-Research-Project/dataset/WOS/{dataset}/X.txt')
     x = f.read().splitlines()
     return x
 
 def get_labels(dataset = "WOS11967"):
-    f = open(f'dataset/WOS/{dataset}/YL1.txt')
+    f = open(f'C:/repo/COMP550-Research-Project/dataset/WOS/{dataset}/YL1.txt')
     y = f.read().splitlines()
     return y
 

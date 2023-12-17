@@ -21,7 +21,7 @@ def uniform_split(x, y, per_class_size):
         seed_y.append(y[random_samples])
     seed_x = np.concatenate(seed_x)
     seed_y = np.concatenate(seed_y)
-    return seed_x, seed_y
+    return seed_x, [str(y) for y in seed_y] #GAURAV why this no return striiiinggg :(
 
 if __name__ == "__main__":
     x, y = get_instances(), get_labels()

@@ -1,11 +1,34 @@
 from openai import OpenAI
 from preprocess import *
 import tiktoken
+from dataset.get_dataset import get_instances
+from seed_sampler import random_split, uniform_split
+import json
 
 import os
 os.environ["OPENAI_API_KEY"]="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"
 
 client = OpenAI()
+
+def _get_seed_instances(seed_set_size, seed_set_generation_method=random_split):
+    """Return labels corresponding to selected seed set and writes the seed set instances 
+        to a text file to be fed into chatGPT-3.5"""
+    x = get_instances()
+    y = get_labels()
+    if seed_set_generation_method == uniform_split:
+        seed_x, seed_y = seed_set_generation_method(x, y, int(seed_set_size/7))
+    else:
+        seed_x, seed_y = seed_set_generation_method(x, y, seed_set_size)
+        
+
+    with open('COMP550-Research-Project/bootstrap_selected_instances.txt', 'w') as output_file:
+        for line in seed_x:
+            output_file.write(line + '\n')
+
+        output_file.close()
+
+    return seed_y
+
 
 def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     """Return the number of tokens used by a list of messages."""
@@ -47,39 +70,81 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
-def query_GPT(prompt):
+default_base = "For the following passage, tell me which domain the written text originates from out of the following possible domains:\
+        Computer  Science, Electrical  Engineering,  Psychology,  Mechanical  Engineering, Civil  Engineering,  Medical  Science,  Biochemistry."
+
+def _query_GPT_json(text_to_categorize, base_prompt=None, temperature=0, top_p=0.1, seed=1234):
+    
+    categories = ["Computer Science", "Electrical Engineering",  "Psychology",  
+                  "Mechanical Engineering", "Civil Engineering",  "Medical Science",  "Biochemistry"]
+
+    prompt = f"Respond in the json format: {{'response': text_categories}}\nText: {text_to_categorize}\nCategories (Computer Science, Electrical Engineering, Psychology, Mechanical Engineering, Civil Engineering, Medical Science, Biochemistry). Do not respond with categories outside of the ones stated."
 
     messages=[
         {"role": "system", "content": "You are a Natural Language Processing assistant, made to analyze text and categorize them based on their content."},
-        {"role": "user", "content": f"For the following passage, tell me which domain the written text originates from out of the following possible domains:\
-        Computer  Science, Electrical  Engineering,  Psychology,  Mechanical  Engineering, Civil  Engineering,  Medical  Science,  Biochemistry. Format your reply \
-        as a single number, ranging from 0 to 6, with the number corresponding to the index of the domain mentioned above. Return no text, only the single number. Passage to categorize: {prompt}"}
+        {"role": "user", "content": prompt}
+    ]
+
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo-1106",
+        response_format={ "type": "json_object" },
+        temperature=temperature,
+        top_p=top_p,
+        seed=seed,
+        messages=messages,
+        max_tokens=40,
+        n=1,
+    )
+
+    response_text =  completion.choices[0].message.content.strip()
+    try:
+        category = re.search("Computer Science|Electrical Engineering|Psychology|Mechanical Engineering|Civil Engineering|Medical Science|Biochemistry", response_text).group(0)
+        category = categories.index(category) #convert to indices
+    except AttributeError:
+        category = '-1'
+    # Add input_text back in for the result
+    return str(category)
+
+def _query_GPT(text_to_categorize, base_prompt=default_base, temperature=0, top_p=0.1, seed=1234):
+
+    messages=[
+        {"role": "system", "content": "You are a Natural Language Processing assistant, made to analyze text and categorize them based on their content."},
+        {"role": "user", "content": f"{base_prompt} Passage to categorize: {text_to_categorize}"}
     ]
 
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=messages
+        temperature=temperature,
+        top_p=top_p,
+        seed=seed,
+        messages=messages,
     )
 
-    print(f"Number of Tokens estimated for messages: {num_tokens_from_messages(messages, model='gpt-3.5-turbo')}")
+    #print(f"Number of Tokens estimated for messages: {num_tokens_from_messages(messages, model='gpt-3.5-turbo')}")
     return completion.choices[0].message.content
 
 
+def _generate_labels(base_prompt=default_base, query_method=_query_GPT, temperature=0, top_p=0.1, seed=1234, filepath_out='COMP550-Research-Project/gpt_generated_labels.txt', filepath_in='COMP550-Research-Project/bootstrap_selected_instances.txt'):
+    """generate ChatGPT labels according to instances passed as input"""
+    with open(filepath_in, 'r') as bootstrap_instances:
+        gpt_labels=[]
+        for instance in bootstrap_instances:
+            label = query_method(instance, base_prompt=base_prompt, temperature=temperature, top_p=top_p, seed=seed) 
+            gpt_labels.append(label)
+
+
+        with open(filepath_out, 'a') as output_file:
+            for label in gpt_labels:
+                output_file.write(label + '\n')
+
+            output_file.close()
+        return gpt_labels
+
+
+if __name__ == "__main__":
+    print(_query_GPT_json(get_instances()[0]))
+#    generate_labels()
+# _get_seed_instances(seed_set_size=100)
 
 
 
-sample_feature = "Background: Chronic alcohol intake impacts skin directly, through organ dysfunction or by modifying preexisting dermatoses. \
-                However, dermatoses afflicting chronic alcoholics figure in a few studies only. Aim: This study aims to correlate the spectrum \
-                of dermatoses in chronic alcoholics with the quantum/duration of alcohol intake and raised liver transaminases. Materials and \
-                Methods: Adult males, totaling 196, ascertained to fulfill the Royal College of Psychiatry criteria for chronic alcoholism by \
-                the de -addiction center and referred for dermatological consult were enrolled as cases, and similar number of age -/sex -matched \
-                teetotallers, as controls. Data emanating from detailed history, clinical examination, and routine liver functions tests were summarized \
-                and subsequently analyzed, including statistically using the Chi-square, independent t and Spearman's rank correlation tests, and compared\
-                with data from previous studies. Results: Majority (104) drank 41-50 units of alcohol/week since 3-40 (mean: 20.01 +/- 9.322) years. \
-                Generalized pruritus (odds ratio [OR]: 31.15, P < 0.001), xerosis (OR: 3.62, P = 0.008), and seborrheic dermatitis (OR: 12.26, P < 0.001)\
-                were significantly more common in cases than controls. Infections (73; 37.2%), eczemas (45; 22.9%), and generalized hyperpigmentation (28; 14.2%)\
-                were- the major presenting complaints. Spider nevi, gynecomastia, and pellagroid dermatitis were present in 34 (17.3%), 19 (9.7%), and 8 (4.1%) \
-                respectively exclusively in cases only. Commonly seen systemic abnormalities were an alcoholic liver disease (45; 22.9%), diabetes mellitus (23; 11.7%)\
-                , and peripheral neuropathy (19; 9.7%). Conclusion: Knowledge of cutaneous manifestations of chronic alcoholism could prompt in-depth history taking of \
-                alcohol intake, lead to specialist referral and thereby enable timely de -addiction, hopefully before serious adversities in the chronic alcoholics."
-print(query_GPT(sample_feature))
