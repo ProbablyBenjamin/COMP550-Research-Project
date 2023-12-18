@@ -10,6 +10,7 @@ dataset
         ...
         ...
     get_dataset.py
+    preprocessed_x.txt [contains preprocessed strings for the WOS11967 dataset]
 '''
 
 def get_instances(dataset = "WOS11967"):
@@ -20,7 +21,12 @@ def get_instances(dataset = "WOS11967"):
 def get_labels(dataset = "WOS11967"):
     f = open(f'C:/repo/COMP550-Research-Project/dataset/WOS/{dataset}/YL1.txt')
     y = f.read().splitlines()
-    return y
+    return [int(x) for x in y]
+
+def get_preprocessed_instances():
+    f = open('dataset/preprocessed_x.txt')
+    x = f.read().splitlines()
+    return x
 
 if __name__ == "__main__":
     print(get_instances()[1])
