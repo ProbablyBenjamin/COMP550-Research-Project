@@ -4,7 +4,7 @@ import numpy as np
 
 def random_split(x, y, seed_set_size):
     indices = random.sample(range(len(x)), seed_set_size)
-    print(indices)
+    #print(indices)
     seed_x = [x[i] for i in indices]
     seed_y = [y[i] for i in indices]
     return seed_x, seed_y
