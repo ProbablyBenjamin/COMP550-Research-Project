@@ -1,4 +1,5 @@
 from gpt_label import _query_GPT, _get_seed_instances, _generate_labels, _query_GPT_json
+from dataset.get_dataset import get_preprocessed_instances, get_instances, get_labels
 from seed_sampler import random_split, uniform_split
 import numpy as np
 
@@ -68,26 +69,13 @@ def experiment_preprocess_prompt(seed_set_generation_method=random_split, seed_s
     """Experimenting with changing preprocessed vs. unpreprocessed prompt"""
     
     #generate seed set
-    seed_labels =_get_seed_instances(seed_set_size, seed_set_generation_method=seed_set_generation_method) #writes seed instances out to file
+    seed_labels =_get_seed_instances(seed_set_size, seed_set_generation_method=seed_set_generation_method, instance_function=get_preprocessed_instances) #writes seed instances out to file
     #pass through gpt with default prompts
-    _generate_labels(temperature=temperature, top_p=top_p, seed=seed) #all default values
+    _generate_labels(query_method=_query_GPT_json, temperature=temperature, top_p=top_p, seed=seed) #all default values
 
-    accuracy = _evaluate_accuracy(seed_labels, convert_to_indices=True)
+    accuracy = _evaluate_accuracy(seed_labels, convert_to_indices=False)
 
-    print(f"Accuracy for default prompt for method {seed_set_generation_method}, with seedset size {seed_set_size}: {accuracy*100}%")
-
-    modified_prompt = "For the following passage, tell me which domain the written text originates from out of the following possible domains:\
-        Computer  Science, Electrical  Engineering,  Psychology,  Mechanical  Engineering, Civil  Engineering,  Medical  Science,  Biochemistry. \
-        Do not return any text in your answer. Only return the index corresponding to the predicted domain. The indices range from 0 to 6. For example, a prediction of Computer Science\
-        should return only the number 0"
-
-    open('COMP550-Research-Project/gpt_generated_labels.txt', 'w').close() #reset file
-
-    _generate_labels(base_prompt=modified_prompt, temperature=temperature, top_p=top_p, seed=1234) 
-
-    accuracy = _evaluate_accuracy(seed_labels)
-
-    print(f"Accuracy for modified prompt for method {seed_set_generation_method}, with seedset size {seed_set_size}: {accuracy*100}%")
+    print(f"Accuracy for preprocessed instances for method {seed_set_generation_method}, with seedset size {seed_set_size}: {accuracy*100}%")
 
     open('COMP550-Research-Project/gpt_generated_labels.txt', 'w').close() #reset file
 
@@ -118,10 +106,23 @@ def experiment_changing_prompt_detail(seed_set_generation_method=random_split, s
 
     open('COMP550-Research-Project/gpt_generated_labels.txt', 'w').close() #reset file
 
+def experiment_full_labelling(seed_set_generation_method=random_split, seed_set_size=100, temperature=0, top_p=0.1, seed=1234):
+
+    #generate seed set 
+    seed_labels = get_labels()
+    
+    _generate_labels(filepath_in='C:/repo/COMP550-Research-Project/dataset/WOS/WOS11967/X.txt', query_method=_query_GPT_json, temperature=temperature, top_p=top_p, seed=1234)
+
+    seed_labels = [str(label) for label in seed_labels]
+
+    accuracy = _evaluate_accuracy(seed_labels)
+
+    print(f"Accuracy for json prompt on entire dataset with best hyperparameters: {accuracy*100}%")
+
 if __name__ == "__main__":
     #experiment_changing_prompt_detail(seed_set_generation_method=random_split, seed_set_size=10)
     #experiment_changing_return_format_json(seed_set_generation_method=random_split, seed_set_size=10)
     #experiment_hyperparameter_gridsearch(seed_set_size=105) #multiple of 7 for easy distributioning
-    print('hello')
-
+    #experiment_preprocess_prompt(seed_set_size=100)
+    experiment_full_labelling()
 

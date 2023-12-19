@@ -24,7 +24,7 @@ def get_labels(dataset = "WOS11967"):
     return [int(x) for x in y]
 
 def get_preprocessed_instances():
-    f = open('dataset/preprocessed_x.txt')
+    f = open('C:/repo/COMP550-Research-Project/dataset/preprocessed_x.txt')
     x = f.read().splitlines()
     return x
 

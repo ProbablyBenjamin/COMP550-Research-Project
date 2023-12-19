@@ -10,10 +10,10 @@ os.environ["OPENAI_API_KEY"]="sk-PdL3tTbbB9WgiSrdoFwqT3BlbkFJFTydzz97qfBoAlqNcP8
 
 client = OpenAI()
 
-def _get_seed_instances(seed_set_size, seed_set_generation_method=random_split):
+def _get_seed_instances(seed_set_size, seed_set_generation_method=random_split, instance_function=get_instances):
     """Return labels corresponding to selected seed set and writes the seed set instances 
         to a text file to be fed into chatGPT-3.5"""
-    x = get_instances()
+    x = instance_function()
     y = get_labels()
     if seed_set_generation_method == uniform_split:
         seed_x, seed_y = seed_set_generation_method(x, y, int(seed_set_size/7))
