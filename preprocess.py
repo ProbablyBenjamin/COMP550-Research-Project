@@ -1,8 +1,5 @@
 import re
 import nltk
-nltk.download('punkt', download_dir = '/mnt/d/mcgill/comp550/COMP550-Research-Project/venv/nltk_data')
-nltk.download('stopwords', download_dir = '/mnt/d/mcgill/comp550/COMP550-Research-Project/venv/nltk_data')
-nltk.download('wordnet', download_dir = '/mnt/d/mcgill/comp550/COMP550-Research-Project/venv/nltk_data')
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
@@ -76,20 +73,13 @@ def preprocess_text(s):
     s = stringify(s)
     return s
 
-if __name__ == "__main__":
-    s = get_instances()[0]
-    print(s)
-    s = to_lowercase(s)
-    s = remove_copyright_tag(s)
-    s = remove_numbers_and_punctuation(s)
-    s = remove_extra_whitespaces(s)
-    print(s)
-    s = tokenize(s)
-    s = remove_stopwords(s)
-    s = remove_single_characters(s)
-    s = lemmatize(s)
-    s = stringify(s)
-    print(s)
+# if __name__ == "__main__":
+#     sentences = get_instances()
+#     with open("dataset/preprocessed_x.txt", "w") as f:
+#         for s in sentences:
+#             f.write(preprocess_text(s) + '\n')
+
+
 
 
 
