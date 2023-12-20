@@ -4,30 +4,31 @@ from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import train_test_split
 import math
 from nltk.tokenize import word_tokenize
-from dataset.get_dataset import get_preprocessed_instances, get_labels
+from dataset.get_dataset import get_preprocessed_instances, get_labels, get_llm_labels
 from preprocess import preprocess_text
 from seed_sampler import random_split, uniform_split
 import random
 
 x, y = get_preprocessed_instances(), get_labels()
+y_llm = get_llm_labels()
+
 train_ratio = 0.8
 validation_ratio = 0.1
 test_ratio = 0.1
 
-x, x_test, y, y_test = train_test_split(x, y, test_size = 1 - train_ratio)
+x, x_test, y, y_test, y_llm, _ = train_test_split(x, y, y_llm, test_size = 1 - train_ratio)
 x_val, x_test, y_val, y_test = train_test_split(x, y, test_size = test_ratio/(validation_ratio + test_ratio))
+
 
 def yarowsky_bootstrapping(labeled_sentences, labels, unlabeled_sentences, threshold):
     # Initialize vectorizer without a preprocessor since data is already preprocessed
     vectorizer = TfidfVectorizer(lowercase=True, tokenizer=word_tokenize, token_pattern = None, min_df = 2)
     # vectorizer = CountVectorizer(lowercase = True, tokenizer=word_tokenize, token_pattern = None, min_df = 2)
-    # Use with_mean=False for sparse matrices
-    # scaler = StandardScaler()
-    # scaler.fit(vectorizer.fit_transform(x))
 
     x_train = labeled_sentences
     y_train = labels
@@ -45,9 +46,9 @@ def yarowsky_bootstrapping(labeled_sentences, labels, unlabeled_sentences, thres
         if len(x_unlabeled) == 0:
             break
 
-        classifier = MultinomialNB(alpha = 1e-5)
-        # classifier = LogisticRegression(C = 5.0, max_iter = 300)
-        # classifier = RandomForestClassifier(n_estimators=100)
+        # classifier = MultinomialNB(alpha = 1e-5)
+        # classifier = LogisticRegression(C = 10.0, max_iter = 300)
+        classifier = RandomForestClassifier(n_estimators=200)
         classifier.fit(x_train, y_train)
 
         x_unlabeled = vectorizer.transform(x_unlabeled).toarray()
@@ -72,32 +73,23 @@ def yarowsky_bootstrapping(labeled_sentences, labels, unlabeled_sentences, thres
     print(f"Validation Accuracy: {accuracy_score(y_val, y_pred)}")
     y_pred = classifier.predict(vectorizer.transform(x_test).toarray())
     print(f"Test Accuracy: {accuracy_score(y_test, y_pred)}")
-    # print(classification_report(y_test, y_pred))
 
     return classifier
 
 def main():
 
-    seed_set_size = math.ceil(0.05*len(x)) # for random_split -- 0.05 corresponds to 5%, change accordingly
+    seed_set_size = math.ceil(0.1*len(x)) # for random_split
     # seed_set_size = math.ceil((len(x)*0.05)/7) # for uniform_split
     threshold = 0.3
     
-    # Assuming uniform_split is defined in seedsample.py
     # seed_x, seed_y = uniform_split(x, y, seed_set_size)  # Adjust the per_class_size as needed
-    seed_x, seed_y = random_split(x, y, seed_set_size = seed_set_size)
+    seed_x, seed_y = random_split(x, y_llm, seed_set_size = seed_set_size)
 
+    # for LLM generated seed set
+   
     unlabeled_x = [sentence for sentence in x if sentence not in seed_x]
 
     classifier = yarowsky_bootstrapping(seed_x, seed_y, unlabeled_x, threshold = threshold)
-
-    # Evaluation and saving the classifier
-
-    # y_pred = classifier.predict(x_test)
-    # print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
-    # print(classification_report(y_test, y_pred))
-
-    # with open('classifier_model.pkl', 'wb') as file:
-    #     pickle.dump(classifier, file)
 
 if __name__ == "__main__":
     main()

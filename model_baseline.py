@@ -43,8 +43,6 @@ def train_and_evaluate(model, X_train, y_train, X_val, y_val, model_name):
     accuracy = accuracy_score(y_val, y_pred)
     print(f"Validation Accuracy: {accuracy:.4f}")
  
-    # Save the model
-    # pickle.dump(model, open(f'models/model_{model_name.lower()}.sav', 'wb'))
 
 def main():
     # Get the training data
@@ -55,7 +53,6 @@ def main():
     test_ratio = 0.1
 
     # Split the data into training and test sets
-    # X_train, X_test, y_train, y_test = train_test_data_split(X, y)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 1 - train_ratio)
     X_val, X_test, y_val, y_test = train_test_split(X, y, test_size=test_ratio/(test_ratio + validation_ratio))
 
@@ -65,8 +62,9 @@ def main():
  
     # Train and evaluate Logistic Regression
     # model = LogisticRegression(C = 20.0, max_iter = 300)
-    model = MultinomialNB(alpha = 1e-5)
-    train_and_evaluate(model, X_train, y_train, X_val, y_val, "MultinomialNB")
+    # model = MultinomialNB(alpha = 1e-5)
+    model = RandomForestClassifier(n_estimators=200)
+    train_and_evaluate(model, X_train, y_train, X_val, y_val, "RandomForest")
 
     y_pred = model.predict(X_test)
  
@@ -74,30 +72,5 @@ def main():
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Test Accuracy: {accuracy:.4f}")
 
- 
-    # # Train and evaluate Random Forest
-    # rf = RandomForestClassifier(n_estimators=1000, random_state=42)
-    # train_and_evaluate(rf, X_train, y_train, X_test, y_test, "Random Forest")
- 
-    # # Train and evaluate SVC
-    # svclassifier = SVC(kernel='linear')
-    # train_and_evaluate(svclassifier, X_train, y_train, X_test, y_test, "SVC")
-
-
 if __name__ == "__main__":
     main()
-# For 12k dataset:
-# SVC Training Complete. Elapsed time: 131.55 seconds
-# Result for SVC: 0.90
-# Logistic Regression Training Complete. Elapsed time: 19.48 seconds
-# Result for Logistic Regression: 0.89
-# Random Forest Training Complete. Elapsed time: 861.96 seconds
-# Result for Random Forest: 0.90
-
-# For larger dataset:
-# Logistic Regression Training Complete. Elapsed time: 41.31 seconds
-# Result for Logistic Regression: 0.83
-# Random Forest Training Complete. Elapsed time: 8916.07 seconds
-# Result for Random Forest: 0.76
-# SVC Training Complete. Elapsed time: 20155.70 seconds
-# Result for SVC: 0.84
